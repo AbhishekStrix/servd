@@ -6,7 +6,7 @@ import { request } from "@arcjet/next";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const STRAPI_URL =
-  process.env.NEXT_PUBLIC_STRAPI_URL || "http://localhost:1337";
+  (process.env.NEXT_PUBLIC_STRAPI_URL || "http://localhost:1337").replace(/\/admin\/?$/, '');
 const STRAPI_API_TOKEN = process.env.STRAPI_API_TOKEN;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
@@ -17,7 +17,7 @@ export async function scanPantryImage(formData) {
   try {
     const user = await checkUser();
     if (!user) {
-      throw new Error("User not authenticated");
+      return { success: false, message: "User not authenticated" };
     }
 
     // Check if user is Pro
@@ -37,10 +37,9 @@ export async function scanPantryImage(formData) {
     if (decision.isDenied()) {
       if (decision.reason.isRateLimit()) {
         throw new Error(
-          `Monthly scan limit reached. ${
-            isPro
-              ? "Please contact support if you need more scans."
-              : "Upgrade to Pro for unlimited scans!"
+          `Monthly scan limit reached. ${isPro
+            ? "Please contact support if you need more scans."
+            : "Upgrade to Pro for unlimited scans!"
           }`
         );
       }
@@ -49,7 +48,7 @@ export async function scanPantryImage(formData) {
 
     const imageFile = formData.get("image");
     if (!imageFile) {
-      throw new Error("No image provided");
+      return { success: false, message: "No image provided" };
     }
 
     // Convert image to base64
@@ -108,9 +107,7 @@ Rules:
     }
 
     if (!Array.isArray(ingredients) || ingredients.length === 0) {
-      throw new Error(
-        "No ingredients detected in the image. Please try a clearer photo."
-      );
+      return { success: false, message: "No ingredients detected in the image. Please try a clearer photo." };
     }
 
     return {
@@ -130,14 +127,14 @@ export async function saveToPantry(formData) {
   try {
     const user = await checkUser();
     if (!user) {
-      throw new Error("User not authenticated");
+      return { success: false, message: "User not authenticated" };
     }
 
     const ingredientsJson = formData.get("ingredients");
     const ingredients = JSON.parse(ingredientsJson);
 
     if (!ingredients || ingredients.length === 0) {
-      throw new Error("No ingredients to save");
+      return { success: false, message: "No ingredients to save" };
     }
 
     // Create pantry items in Strapi
@@ -210,7 +207,7 @@ export async function addPantryItemManually(formData) {
     if (!response.ok) {
       const errorText = await response.text();
       console.error("Failed to add item:", errorText);
-      throw new Error("Failed to add item to pantry");
+      return { success: false, message: "Failed to add item to pantry" };
     }
 
     const data = await response.json();
@@ -231,7 +228,7 @@ export async function getPantryItems() {
   try {
     const user = await checkUser();
     if (!user) {
-      throw new Error("User not authenticated");
+      return { success: false, message: "User not authenticated" };
     }
 
     const response = await fetch(
@@ -245,7 +242,7 @@ export async function getPantryItems() {
     );
 
     if (!response.ok) {
-      throw new Error("Failed to fetch pantry items");
+      return { success: false, message: "Failed to fetch pantry items" };
     }
 
     const data = await response.json();
@@ -268,7 +265,7 @@ export async function deletePantryItem(formData) {
   try {
     const user = await checkUser();
     if (!user) {
-      throw new Error("User not authenticated");
+      return { success: false, message: "User not authenticated" };
     }
 
     const itemId = formData.get("itemId");
@@ -281,7 +278,7 @@ export async function deletePantryItem(formData) {
     });
 
     if (!response.ok) {
-      throw new Error("Failed to delete item");
+      return { success: false, message: "Failed to delete item" };
     }
 
     return {
@@ -299,7 +296,7 @@ export async function updatePantryItem(formData) {
   try {
     const user = await checkUser();
     if (!user) {
-      throw new Error("User not authenticated");
+      return { success: false, message: "User not authenticated" };
     }
 
     const itemId = formData.get("itemId");
@@ -321,7 +318,7 @@ export async function updatePantryItem(formData) {
     });
 
     if (!response.ok) {
-      throw new Error("Failed to update item");
+      return { success: false, message: "Failed to update item" };
     }
 
     const data = await response.json();

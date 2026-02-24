@@ -1,19 +1,19 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 
 const STRAPI_URL =
-  process.env.NEXT_PUBLIC_STRAPI_URL || "http://localhost:1337";
+  (process.env.NEXT_PUBLIC_STRAPI_URL || "http://localhost:1337").replace(/\/admin\/?$/, '');
 const STRAPI_API_TOKEN = process.env.STRAPI_API_TOKEN;
 
 export const checkUser = async () => {
   const user = await currentUser();
 
   if (!user) {
-    console.log("No User found");
-    return null;
+    console.log("❌ checkUser: No auth session found from @clerk/nextjs/server currentUser()");
+    return { success: false, message: "No auth session" };
   }
 
   if (!STRAPI_API_TOKEN) {
-    console.error("❌ STRAPI_API_TOKEN is missing in .env.local");
+    console.error("❌ checkUser: STRAPI_API_TOKEN is entirely missing in environment variables!");
     return null;
   }
 
@@ -35,7 +35,7 @@ export const checkUser = async () => {
 
     if (!existingUserResponse.ok) {
       const errorText = await existingUserResponse.text();
-      console.error("Strapi error response:", errorText);
+      console.error("❌ checkUser: Strapi /api/users fetch failed!", errorText, "URL:", `${STRAPI_URL}/api/users`);
       return null;
     }
 
@@ -75,7 +75,7 @@ export const checkUser = async () => {
     );
 
     if (!authenticatedRole) {
-      console.error("❌ Authenticated role not found");
+      console.error("❌ checkUser: 'authenticated' role not found in Strapi roles list!", rolesData);
       return null;
     }
 
@@ -106,14 +106,15 @@ export const checkUser = async () => {
 
     if (!newUserResponse.ok) {
       const errorText = await newUserResponse.text();
-      console.error("❌ Error creating user:", errorText);
+      console.error("❌ checkUser: Error silently creating user in Strapi:", errorText);
       return null;
     }
 
     const newUser = await newUserResponse.json();
     return newUser;
-    
+
   } catch (error) {
+    console.error("❌ checkUser: Caught exception during checkUser execution:", error);
     return null;
   }
 };
