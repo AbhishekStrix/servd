@@ -7,7 +7,7 @@ import { request } from "@arcjet/next";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const STRAPI_URL =
-  process.env.NEXT_PUBLIC_STRAPI_URL || "http://localhost:1337";
+  (process.env.NEXT_PUBLIC_STRAPI_URL || "http://localhost:1337").replace(/\/admin\/?$/, '');
 const STRAPI_API_TOKEN = process.env.STRAPI_API_TOKEN;
 const UNSPLASH_ACCESS_KEY = process.env.UNSPLASH_ACCESS_KEY;
 
@@ -68,12 +68,12 @@ export async function getOrGenerateRecipe(formData) {
   try {
     const user = await checkUser();
     if (!user) {
-      throw new Error("User not authenticated");
+      return { success: false, message: "User not authenticated" };
     }
 
     const recipeName = formData.get("recipeName");
     if (!recipeName) {
-      throw new Error("Recipe name is required");
+      return { success: false, message: "Recipe name is required" };
     }
     // Normalize the title (e.g., "apple cake" → "Apple Cake")
     const normalizedTitle = normalizeTitle(recipeName);
@@ -217,7 +217,7 @@ Guidelines:
       recipeData = JSON.parse(cleanText);
     } catch (parseError) {
       console.error("Failed to parse Gemini response:", text);
-      throw new Error("Failed to generate recipe. Please try again.");
+      return { success: false, message: "Failed to generate recipe. Please try again." };
     }
 
     // FORCE the title to be our normalized version
@@ -313,7 +313,7 @@ Guidelines:
     if (!createRecipeResponse.ok) {
       const errorText = await createRecipeResponse.text();
       console.error("❌ Failed to save recipe:", errorText);
-      throw new Error("Failed to save recipe to database");
+      return { success: false, message: "Failed to save recipe to database (Strapi URL might be incorrect)" };
     }
 
     const createdRecipe = await createRecipeResponse.json();
@@ -337,7 +337,7 @@ Guidelines:
     };
   } catch (error) {
     console.error("❌ Error in getOrGenerateRecipe:", error);
-    throw new Error(error.message || "Failed to load recipe");
+    return { success: false, message: error.message || "Failed to load recipe" };
   }
 }
 

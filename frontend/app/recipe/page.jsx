@@ -177,7 +177,7 @@ function RecipeContent() {
             Failed to load recipe
           </h2>
           <p className="text-stone-600 mb-6 font-light">
-            Something went wrong while loading the recipe. Please try again.
+            {recipeData?.message || "Something went wrong while loading the recipe. Please try again."}
           </p>
           <div className="flex gap-3 justify-center">
             <Button
